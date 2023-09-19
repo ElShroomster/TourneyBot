@@ -16,21 +16,75 @@ max_name_len = 32
 allowed_channels = constants["ALLOWED_CHANNELS"]
 announce_channel = constants["ANNOUNCEMENTS_CHANNEL"]
 manager_roles = constants["MANAGER_ROLES"]
+admin_role = constants["ADMIN_ROLE"]
 bwcs_role = constants["TOURNEY_ROLE"]
+
+valid_tags = ["QUAL1", "QUAL2", "QUAL3", "QUAL4", "QUAL5", "QUAL6", "QUAL7", "QUAL8"]
+cat_map = {
+    "POS1": "Placement",
+    "POS2": "Placement",
+    "POS3": "Placement",
+    "POS4": "Placement",
+    "POS5": "Placement",
+    "POS6": "Placement", 
+    "POS1DAY2": "Placement",
+    "POS2DAY2": "Placement",
+    "POS3DAY2": "Placement",
+    "POS4DAY2": "Placement",
+    "POS5DAY2": "Placement",
+    "POS6DAY2": "Placement",
+    "SURV5": "Survival",
+    "SURV10": "Survival",
+    "SURV15": "Survival",
+    "SURV5DAY2": "Survival",
+    "SURV10DAY2": "Survival",
+    "SURV15DAY2": "Survival",
+    "FINAL": "Finals",
+    "FINALDAY2": "Finals",
+    "BED": "Bed Break",
+    "BEDDAY2": "Bed Break",
+}
+cat_point_map = {
+    "POS1": 25,
+    "POS2": 18,
+    "POS3": 15,
+    "POS4": 12,
+    "POS5": 10,
+    "POS6": 5, 
+    "POS1DAY2": 50,
+    "POS2DAY2": 36,
+    "POS3DAY2": 30,
+    "POS4DAY2": 24,
+    "POS5DAY2": 20,
+    "POS6DAY2": 10,
+    "SURV5": 10,
+    "SURV10": 5,
+    "SURV15": 5,
+    "SURV5DAY2": 20,
+    "SURV10DAY2": 10,
+    "SURV15DAY2": 10,
+    "FINAL": 4,
+    "FINALDAY2": 8,
+    "BED": 7,
+    "BEDDAY2": 14,
+}
 
 class Tourney(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.teams = json.load(open(teams_file, 'r'))
         self.players = json.load(open(players_file, 'r'))
+
         self.max_players = max_players_default
         self.max_teams = max_teams_default
+        self.curr_id = 0
+        self.max_name_len = max_name_len
+
         self.allowed_channels = allowed_channels
         self.manager_roles = manager_roles
         self.announce_channel = announce_channel
-        self.curr_id = 0
         self.bwcs_role = bwcs_role
-        self.max_name_len = max_name_len
+
 
     def save_teams(self):
         json.dump(self.teams, open(teams_file, 'w'))
@@ -429,6 +483,29 @@ class Tourney(commands.Cog):
         return await ctx.message.reply(embed = self.get_embed(f'Successfully removed team `{team_name}`'),
                                        mention_author = False)
 
+    @commands.command(name = 'score')
+    async def add_points(self, ctx, name, tag, category):
+        if discord.utils.get(ctx.guild.roles, id=admin_role) is None:
+            return await ctx.message.reply(embed = self.get_embed(f'Permission denied.'), mention_author = False)
+        
+        tag = tag.upper()
+        category = category.upper()
+
+        if name not in self.teams:
+            return await ctx.message.reply(embed = self.get_embed(f'This team does not exist.'), mention_author = False)
+        
+        if tag not in valid_tags:
+            return await ctx.message.reply(embed = self.get_embed(f'This tag does not exist.'), mention_author = False)
+        
+        if category not in cat_map:
+            return await ctx.message.reply(embed = self.get_embed(f'This category does not exist.'), mention_author = False)
+        
+        team = self.teams[name]
+        points = cat_point_map[category]
+        cat = cat_map[category]
+        
+        return await ctx.message.reply(embed = self.get_embed(f'Team `{team["name"]}` +{points} {cat} points! ({tag})'), mention_author = False)
+
     async def announce(self, ctx, message):
         channel = discord.utils.get(ctx.guild.channels, id = self.announce_channel)
         return await channel.send(message)
@@ -457,8 +534,6 @@ class Select(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
 
-        allowed_role_id = 1151984592199368826
-
         if self.values[0] == "General":
             embed1 = discord.Embed(
                 title = "**General**",
@@ -467,7 +542,7 @@ class Select(discord.ui.Select):
             )
             await interaction.response.send_message(embed=embed1, ephemeral=True)
 
-        if interaction.guild and any(role.id == allowed_role_id for role in interaction.user.roles):
+        if interaction.guild and any(role.id == admin_role for role in interaction.user.roles):
 
             if self.values[0] == "Management":
                 embed2 = discord.Embed(
