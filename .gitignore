@@ -4,4 +4,6 @@ __pycache__/
 data/
 
 *.key
+
+tourney.constants.json
 constants.json
