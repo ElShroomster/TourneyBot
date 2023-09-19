@@ -2,15 +2,21 @@ from discord.ext import commands
 import discord
 import json
 
+constants = None
+with open("tourney.constants.json", "r", encoding="utf-8") as rt:
+    rt.seek(0)
+    constants = json.load(rt)
+
 teams_file = 'data/teams.json'
 players_file = 'data/players.json'
 max_teams_default = 64
 max_players_default = 2
-allowed_channels = [1148349535538659388]
-announce_channel = 1148349498293244067
-manager_roles = [1061287805399085086, 1061287799770316820]
-bwcs_role = 1148250894757007401
 max_name_len = 32
+
+allowed_channels = constants["ALLOWED_CHANNELS"]
+announce_channel = constants["ANNOUNCEMENTS_CHANNEL"]
+manager_roles = constants["MANAGER_ROLES"]
+bwcs_role = constants["TOURNEY_ROLE"]
 
 class Tourney(commands.Cog):
     def __init__(self, bot):
@@ -441,42 +447,42 @@ class Tourney(commands.Cog):
     async def help(self, ctx):
         await ctx.send("Choose an option:", view=SelectView())
 
-    class Select(discord.ui.Select):
-        def __init__(self):
-            options = [
-            discord.SelectOption(label="General", description="Showcases General Commands"),
-            discord.SelectOption(label="Management", description="Showcases Management's Commands.")
-        ]
-            super().__init__(placeholder="Select an option", max_values=1, min_values=1, options=options)
+class Select(discord.ui.Select):
+    def __init__(self):
+        options = [
+        discord.SelectOption(label="General", description="Showcases General Commands"),
+        discord.SelectOption(label="Management", description="Showcases Management's Commands.")
+    ]
+        super().__init__(placeholder="Select an option", max_values=1, min_values=1, options=options)
 
-        async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction):
 
-            allowed_role_id = 1151984592199368826
+        allowed_role_id = 1151984592199368826
 
-            if self.values[0] == "General":
-                embed1 = discord.Embed(
-                    title = "**General**",
-                    description = f"**Create ** your Team using `-create` *<TeamName>. Alias: create.*\n**Disband** your Team using `-disband` *<TeamName>. Alias: abandon.*\n\n**Invite** a Player using `-invite` *<DiscordTAG/ID>. Alias: add.*\n**Uninvite** a Player using `-uninvite` *<DiscordTAG/ID>.*\n\n**Accept** a Team Invitation using `-accept` *<TeamName>. Alias: join.*\n**Reject** a Team Invitation using `-reject` *<TeamName>.*\n**Leave** a Team using `-leave` *<TeamName>.*\n\nGet **Info** on a Player using `-info` *<DiscordTAG/ID>. Alias: i.*",
-                    color = 0x4b61df
-                )
+        if self.values[0] == "General":
+            embed1 = discord.Embed(
+                title = "**General**",
+                description = f"**Create ** your Team using `-create` *<TeamName>. Alias: create.*\n**Disband** your Team using `-disband` *<TeamName>. Alias: abandon.*\n\n**Invite** a Player using `-invite` *<DiscordTAG/ID>. Alias: add.*\n**Uninvite** a Player using `-uninvite` *<DiscordTAG/ID>.*\n\n**Accept** a Team Invitation using `-accept` *<TeamName>. Alias: join.*\n**Reject** a Team Invitation using `-reject` *<TeamName>.*\n**Leave** a Team using `-leave` *<TeamName>.*\n\nGet **Info** on a Player using `-info` *<DiscordTAG/ID>. Alias: i.*",
+                color = 0x4b61df
+            )
             await interaction.response.send_message(embed=embed1, ephemeral=True)
 
-            if interaction.guild and any(role.id == allowed_role_id for role in interaction.user.roles):
+        if interaction.guild and any(role.id == allowed_role_id for role in interaction.user.roles):
 
-                if self.values[0] == "Management":
-                    embed2 = discord.Embed(
-                        title = "**Management**",
-                        description = "**Kick a Team** from Sign Ups using `-kickteam` *<TeamName>.*\n\nSet a **Maximum Amount of Players** per Team using `-setmaxplayers` <Number>.*\n\nSet a **Maximum Amount of Teams** using `-setmaxteams` *<Number>.*\n\n**Clear Games** using `-cleargames` *<>.*",
-                        color = 0x4b61df
-                    )
-                    await interaction.response.send_message(embed=embed2, ephemeral=True)
-                else:
-                    await interaction.response.send_message(content="Access denied.", ephemeral=True)
+            if self.values[0] == "Management":
+                embed2 = discord.Embed(
+                    title = "**Management**",
+                    description = "**Kick a Team** from Sign Ups using `-kickteam` *<TeamName>.*\n\nSet a **Maximum Amount of Players** per Team using `-setmaxplayers` <Number>.*\n\nSet a **Maximum Amount of Teams** using `-setmaxteams` *<Number>.*\n\n**Clear Games** using `-cleargames` *<>.*",
+                    color = 0x4b61df
+                )
+                await interaction.response.send_message(embed=embed2, ephemeral=True)
+            else:
+                await interaction.response.send_message(content="Access denied.", ephemeral=True)
 
-    class SelectView(discord.ui.View):
-        def __init__(self, *, timeout=180):
-            super().__init__(timeout=timeout)
-            self.add_item(Select())
+class SelectView(discord.ui.View):
+    def __init__(self, *, timeout=180):
+        super().__init__(timeout=timeout)
+        self.add_item(Select())
 
 async def setup(bot):
     await bot.add_cog(Tourney(bot))
