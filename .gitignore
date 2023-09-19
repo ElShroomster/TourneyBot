@@ -1,4 +1,7 @@
 venv/
 __pycache__/
 
+data/
+
 *.key
+constants.json
