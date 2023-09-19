@@ -17,22 +17,28 @@ intents = discord.Intents.all()
 intents.presences = False
 
 bot = commands.Bot(command_prefix="-", intents=intents)
+
+constants = None
+with open("constants.json", "r", encoding="utf-8") as rt:
+    rt.seek(0)
+    constants = json.load(rt)
+
 # -- Constants
 
-SERVER_ID = 1014230302622744677
-VOTE_CHANNEL_PUGS = 1032999595220946944
-PUGS_ROLE = 1014279626626977864
-PUGS_MANAGER_ROLE = 1014292585700929637
-PUGS_CONFIRM = 1147799167419297832
-STRIKE_REQUEST_CHANNEL = 1147798973021700187
-CONFIRM_STRIKE_CHANNEL = 1147884477847179316
-PUGS_ANNOUNCEMENTS = 1014281385906811031
-PUGS_TRIAL_ROLE = 1047032587631210496
+SERVER_ID = constants["SERVER_ID"]
+VOTE_CHANNEL_PUGS = constants["VOTE_CHANNEL_PUGS"]
+PUGS_ROLE = constants["PUGS_ROLE"]
+PUGS_MANAGER_ROLE = constants["PUGS_MANAGER_ROLE"]
+PUGS_CONFIRM = constants["PUGS_CONFIRM"]
+STRIKE_REQUEST_CHANNEL = constants["STRIKE_REQUEST_CHANNEL"]
+CONFIRM_STRIKE_CHANNEL = constants["CONFIRM_STRIKE_CHANNEL"]
+PUGS_ANNOUNCEMENTS = constants["PUGS_ANNOUNCEMENTS"]
+PUGS_TRIAL_ROLE = constants["PUGS_TRIAL_ROLE"]
 
 
 # -- Functions
 
-    # Commands
+# Commands
 commands_dir = './cogs'
 commands_dir_p = "cogs"
 

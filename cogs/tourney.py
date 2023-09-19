@@ -437,8 +437,8 @@ class Tourney(commands.Cog):
     # score game
     # view teams lb
 
-    @commands.command(name = 'help')
-    async def help(ctx):
+    @commands.command(name = 'help2')
+    async def help(self, ctx):
         await ctx.send("Choose an option:", view=SelectView())
 
     class Select(discord.ui.Select):
