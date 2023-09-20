@@ -451,7 +451,7 @@ class Tourney(commands.Cog):
         return await ctx.message.reply(embed = self.get_embed(f'Successfully cleared all games.'),
                                        mention_author = False)
 
-    @commands.command(name = 'kickteam')
+    @commands.command(name = 'kickteam',  aliases = ['forcedisband'])
     async def kick_team(self, ctx, *args):
         if not any([discord.utils.get(ctx.guild.roles, id = x) in ctx.author.roles for x in self.manager_roles]):
             return await ctx.message.reply(embed = self.get_embed(f'You are not a manager. Only managers can kick teams.'),
