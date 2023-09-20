@@ -1,6 +1,8 @@
 from discord.ext import commands
 import discord
 import json
+import io
+from .render import leaderboard
 
 constants = None
 with open("tourney.constants.json", "r", encoding="utf-8") as rt:
@@ -395,6 +397,14 @@ class Tourney(commands.Cog):
 
         return await ctx.message.reply(embed = self.info_embed(self.get_team(player.id)),
                                        mention_author = False)
+    
+    @commands.command(name = 'standings', aliases = ['lb'])
+    async def standings(self, ctx):
+
+        img = leaderboard()
+        image_file = discord.File(io.BytesIO(img),filename=f"lb.png")
+        
+        await ctx.send(file=image_file)
 
     @commands.command(name = 'getteam', aliases = ['team'])
     async def team(self, ctx, *args):
