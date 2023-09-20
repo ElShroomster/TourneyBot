@@ -363,13 +363,16 @@ class Tourney(commands.Cog):
     @commands.cooldown(rate = 3, per = 3)
     async def kick(self, ctx, player: discord.User):
         if not self.is_on_team(ctx.author.id):
-            return await ctx.message.reply(embed = self.get_embed(f'You are not on a team.'),
-                                           mention_author = False)
+            return await ctx.message.reply(embed = self.get_embed(f'You are not on a team.'), mention_author = False)
 
         team = self.get_team(ctx.author.id)
         team_name = team['name']
         if team['leader'] != ctx.author.id:
             return await ctx.message.reply(embed = self.get_embed(f'You are not a team leader. Only team leaders can kick players.'),
+                                           mention_author = False)
+        
+        if player.id == team['leader']:
+            return await ctx.message.reply(embed = self.get_embed(f'The team leader cannot be kicked.'),
                                            mention_author = False)
 
         if player.id not in team['members']:
