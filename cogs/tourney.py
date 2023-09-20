@@ -329,17 +329,15 @@ class Tourney(commands.Cog):
         team = self.get_team(ctx.author.id)
         team_name = team['name']
 
-        if arg_name == "":
-            return await ctx.message.reply(embed = self.get_embed(f'To confirm, state the name of your team by running `{self.bot.prefix}disband <team_name>`'))
- 
-
         if arg_name != team_name:
             return await ctx.message.reply(embed = self.get_embed(f'You are not the leader of team `{arg_name}`.'),
                                            mention_author = False)
-
+        
         if team['leader'] != ctx.author.id:
             return await ctx.message.reply(embed = self.get_embed(f'You are not a team leader. Only team leaders can disband the team'),
-                                           mention_author = False)
+                                           mention_author = False)    
+        if arg_name == "":
+            return await ctx.message.reply(embed = self.get_embed(f'To confirm, state the name of your team by running `{self.bot.prefix}disband <team_name>`'))
 
         for member in team['members']:
             self.players.pop(str(member))
