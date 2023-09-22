@@ -25,8 +25,8 @@ pip install -r requirements.txt
 4. Configure the bot.
 There are two main files used for configuration. `constants.json` & `tourney.constants.json`.
 
-`constants.json` - This requires an API key and API URL, get these from ohb00.
-`tourney.constants.json` - This contains the roles and channels required for running the bot.
++ `constants.json` - This requires an API key and API URL, get these from ohb00.
++ `tourney.constants.json` - This contains the roles and channels required for running the bot.
 
 5. Run the bot
 ```bash
