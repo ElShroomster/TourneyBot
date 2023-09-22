@@ -489,14 +489,14 @@ class ConfirmSync(discord.ui.View):
 
         await interaction.response.send_message(f'Sync in progress...') 
 
-        size = len(self.teams)
+        size = len(self.teams.values())
 
         for i, t in enumerate(self.teams):
-            await self.api.createTeam(t["name"], t["leader"])
+            await self.api.createTeam(t["name"], str(t["leader"]))
 
             for m in t["members"]:
-                await self.api.inviteToTeam(m, t["leader"])
-                await self.api.acceptInvite(t["name"], m)
+                await self.api.inviteToTeam(m, str(t["leader"]))
+                await self.api.acceptInvite(t["name"], str(m))
 
             if i % 5 == 0:
                 await self.ctx.channel.send(f'{i + 1}/{size} ({t["name"]})')
