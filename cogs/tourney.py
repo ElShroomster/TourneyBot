@@ -53,6 +53,33 @@ class Tourney(commands.Cog):
         
         return await self.reply_error(ctx, f'Error:\n{error}') 
     
+    @commands.command(name = 'help')
+    async def help_basic(self, ctx):
+
+        isManager = discord.utils.get(ctx.guild.roles, id=manager_role) in ctx.author.roles
+
+        description = """**Team Commands** - Mange your team
+`-create [team name]` Create a new team. You will be the team leader.
+`-invite [player]` Invite a player to your team.
+`-accept [team name]` Accept an invite to a team.
+`-reject [team name]` Reject an invite to a team.
+`-uninvite [team name]` Sike! I don't want you on my team.
+`-leave` Leave your current team D:
+`-disband [team name]` Fed up with your team losing? Use this one!
+"""
+
+        if isManager:
+            description += """\n\n**Manager Commands** - You're managing the tournament, lucky you.
+"""
+
+        embed = discord.Embed(
+            title= "Help Menu",
+            description = description,
+            color = 0x4b61df,
+        ).set_footer(text = "BedWars Championship's Tourney")
+
+        await ctx.message.reply(embed=embed, mention_author=False)
+    
     @commands.command(name = 'api')
     async def check_api(self, ctx):
         
@@ -117,10 +144,9 @@ class Tourney(commands.Cog):
 
     @commands.command(name = 'leave', usage = 'leave <team_name>')
     @commands.cooldown(rate = 3, per = 3)
-    async def leave(self, ctx, *args):
-        team_name = " ".join(args)
-        if team_name == "":
-            return await self.reply_generic(ctx, f'To confirm, state the name of your team by running `{self.bot.prefix}leave <team_name>`')
+    async def leave(self, ctx):
+        team = await self.api.getUserTeam(ctx.author.id)
+        team_name = team["name"]
 
         await self.api.leaveTeam(team_name, ctx.author.id)
 
@@ -229,25 +255,43 @@ class Tourney(commands.Cog):
         else:
             await ctx.send(file=image_file)
 
-    @commands.command(name = 'setmaxplayers')
-    async def set_max_players(self, ctx, max_players):
+    @commands.group(invoke_without_command=True, name="config")
+    async def config(self, ctx):
+
+        players = await self.api.getConfig("max_players")
+        teams = await self.api.getConfig("max_teams")
+        
+        await self.reply_generic(ctx, f'`max_players={players["value"]}`\n`max_teams={teams["value"]}`')
+
+    @config.command(name = 'players')
+    async def config_max_players(self, ctx, max_players=None):
+
+        if max_players is None:
+            max = await self.api.getConfig("max_players")
+
+            return await self.reply_generic(ctx, f'Max players set to {max["value"]}.')
         
         if not discord.utils.get(ctx.guild.roles, id=manager_role) in ctx.author.roles:
             return await self.reply_error(ctx, f'You are not a manager. Only managers can set max players.')
         
-        self.api.setConfig("max_players", max_players)
+        await self.api.setConfig("max_players", int(max_players))
 
         return await self.reply_generic(ctx, f'Max players set to {max_players}.')
+    
+    @config.command(name = 'teams')
+    async def config_max_teams(self, ctx, max_players=None):
 
-    @commands.command(name = 'setmaxteams')
-    async def set_max_teams(self, ctx, max_teams):
+        if max_players is None:
+            max = await self.api.getConfig("max_teams")
+
+            return await self.reply_generic(ctx, f'Max teams set to {max["value"]}.')
         
         if not discord.utils.get(ctx.guild.roles, id=manager_role) in ctx.author.roles:
-            return await self.reply_error(ctx, f'You are not a manager. Only managers can set max teams.')
+            return await self.reply_error(ctx, f'You are not a manager. Only managers can set max players.')
+        
+        await self.api.setConfig("max_teams", int(max_players))
 
-        self.api.setConfig("max_teams", max_teams)
-
-        return await self.reply_generic(ctx, f'Max teams set to {max_teams}.')
+        return await self.reply_generic(ctx, f'Max teams set to {max_players}.')
 
 
     @commands.command(name = 'forcedisband')

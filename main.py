@@ -17,6 +17,8 @@ constants = None
 prefix = "-"
 bot = commands.Bot(command_prefix=prefix, intents=intents)
 
+bot.help_command = None
+
 with open('.key', 'r') as f:
     key = f.read()
 
