@@ -1,10 +1,11 @@
-from discord.ext import commands
-import discord
 import json
 import io
+import traceback
+
+import discord
+from discord.ext import commands
 
 from api import API, APIError
-
 from .render import leaderboard
 
 constants = None
@@ -34,14 +35,7 @@ class Tourney(commands.Cog):
         self.teams = json.load(open(teams_file, 'r'))
         self.players = json.load(open(players_file, 'r'))
 
-        self.max_players = max_players_default
-        self.max_teams = max_teams_default
-        self.curr_id = 0
         self.max_name_len = max_name_len
-
-        self.allowed_channels = allowed_channels
-        self.announce_channel = announce_channel
-        self.bwcs_role = bwcs_role
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
@@ -55,7 +49,7 @@ class Tourney(commands.Cog):
         if isinstance(e, APIError):
             return await self.reply_error(ctx, e) 
         
-        print(e)
+        print(''.join(traceback.TracebackException.from_exception(e).format()))
         
         return await self.reply_error(ctx, f'Error:\n{error}') 
     
@@ -78,7 +72,7 @@ class Tourney(commands.Cog):
 
         await self.api.createTeam(team_name, ctx.author.id)
 
-        await ctx.author.add_roles(discord.utils.get(ctx.guild.roles, id = self.bwcs_role))
+        await ctx.author.add_roles(discord.utils.get(ctx.guild.roles, id = bwcs_role))
         return await self.reply_generic(ctx, f'Team `{team_name}` has been created. Use: `{self.bot.prefix}invite <user>` to invite a friend.')
 
     @commands.command(name = 'invite', aliases = ['add'], usage = 'invite <DiscordID>')
@@ -103,7 +97,7 @@ class Tourney(commands.Cog):
         print(members)
 
         await self.announce(ctx, f"`{team_name}` has entered the tournament.\nMembers: ...")
-        await ctx.author.add_roles(discord.utils.get(ctx.guild.roles, id = self.bwcs_role))
+        await ctx.author.add_roles(discord.utils.get(ctx.guild.roles, id=bwcs_role))
         return await self.reply_generic(ctx, f'You have successfully joined `{team_name}`')
     
     @commands.command(name = 'uninvite')
@@ -212,24 +206,38 @@ class Tourney(commands.Cog):
         return await ctx.message.reply(embed=embed, mention_author=False)
 
     @commands.command(name = 'standings', aliases = ['lb'])
-    async def standings(self, ctx, bracket):
+    async def standings(self, ctx, bracket, ignore=""):
+
+        status = await self.api.getBracketStatus(bracket)
+        isLocked = status["isLocked"]
+
+        ignoreLocked = ignore == "bypass"
+
+        if not isLocked and not ignoreLocked:
+            return await self.reply_error(ctx, "Scoring has not yet completed for this bracket.")
 
         scores = await self.api.getBracketScores(bracket)
 
-        img = await self.api.leaderboard(ctx, scores)
+        img = await leaderboard(ctx, scores)
         image_file = discord.File(io.BytesIO(img),filename=f"lb.png")
         
-        await ctx.send(file=image_file)
+        if not isLocked:
+            await ctx.send(embed=discord.Embed(
+                description = "**WARNING**\nScoring is not yet complete, this leadboard may not be accurate.",
+                color = 0xff0000,
+            ), file=image_file)
+        else:
+            await ctx.send(file=image_file)
 
     @commands.command(name = 'setmaxplayers')
     async def set_max_players(self, ctx, max_players):
         
         if not discord.utils.get(ctx.guild.roles, id=manager_role) in ctx.author.roles:
             return await self.reply_error(ctx, f'You are not a manager. Only managers can set max players.')
+        
+        self.api.setConfig("max_players", max_players)
 
-        max_players = int(max_players)
-        self.max_players = max_players
-        return await self.reply_generic(ctx, f'Max players set to {self.max_players}.')
+        return await self.reply_generic(ctx, f'Max players set to {max_players}.')
 
     @commands.command(name = 'setmaxteams')
     async def set_max_teams(self, ctx, max_teams):
@@ -237,10 +245,9 @@ class Tourney(commands.Cog):
         if not discord.utils.get(ctx.guild.roles, id=manager_role) in ctx.author.roles:
             return await self.reply_error(ctx, f'You are not a manager. Only managers can set max teams.')
 
-        max_teams = int(max_teams)
-        self.max_teams = max_teams
+        self.api.setConfig("max_teams", max_teams)
 
-        return await self.reply_generic(ctx, f'Max teams set to {self.max_teams}.')
+        return await self.reply_generic(ctx, f'Max teams set to {max_teams}.')
 
 
     @commands.command(name = 'forcedisband')
@@ -278,10 +285,10 @@ class Tourney(commands.Cog):
         }
 
         cat_fn_map = {
-            "bed": scoreBeds,
-            "final": scoreFinals,
-            "pos": scorePos,
-            "time": scoreTime,
+            "bed": self.api.scoreBeds,
+            "final": self.api.scoreFinals,
+            "pos": self.api.scorePos,
+            "time": self.api.scoreTime,
         }
 
         if bracket not in brackets:
@@ -301,7 +308,7 @@ class Tourney(commands.Cog):
         
         fn = cat_fn_map[category]
 
-        res = await self.api.fn(team, bracket, quantity)
+        res = await fn(team, bracket, quantity)
 
         return await self.send_score(ctx, res)
 
@@ -362,9 +369,8 @@ class Tourney(commands.Cog):
         return await self.reply_generic(ctx, "\n".join([f'**{k}**: {v}' for k,v in x.items()]))
     
 
-
     async def announce(self, ctx, message):
-        channel = discord.utils.get(ctx.guild.channels, id = self.announce_channel)
+        channel = discord.utils.get(ctx.guild.channels, id=announce_channel)
         return await channel.send(message)
 
     async def reply_generic(self, ctx, message):

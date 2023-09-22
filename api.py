@@ -133,10 +133,21 @@ class API:
         }, "")
 
     async def getBracketStatus(self, bracket):
+        bracket = urllib.parse.quote(bracket, safe='')
         return await self.get(f'/brackets/{bracket}')
 
     async def changeBracketLock(self, bracket, lock):
         return await self.post(f'/brackets/lock', {
             "bracket": bracket,
             "lock": bool(lock)
+        }, "")
+    
+    async def getConfig(self, key):
+        key = urllib.parse.quote(key, safe='')
+        return await self.get(f'/config/{key}')
+    
+    async def setConfig(self, key, value):
+        key = urllib.parse.quote(key, safe='')
+        return await self.post(f'/config/{key}', {
+            "value": value
         }, "")
