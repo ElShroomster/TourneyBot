@@ -14,8 +14,7 @@ with open("tourney.constants.json", "r", encoding="utf-8") as rt:
     rt.seek(0)
     constants = json.load(rt)
 
-teams_file = 'data/teams.json'
-players_file = 'data/players.json'
+
 max_teams_default = 64
 max_players_default = 2
 max_name_len = 32
@@ -31,11 +30,7 @@ class Tourney(commands.Cog):
     def __init__(self, bot):
 
         self.api: API = bot.api
-
         self.bot = bot
-        self.teams = json.load(open(teams_file, 'r'))
-        self.players = json.load(open(players_file, 'r'))
-
         self.max_name_len = max_name_len
 
     @commands.Cog.listener()

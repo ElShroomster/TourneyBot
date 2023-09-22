@@ -2,6 +2,7 @@ from PIL.ImageFont import FreeTypeFont
 from PIL import Image, ImageFont, ImageDraw
 import io
 import random
+import json
 
 FONT_REGULAR: FreeTypeFont = ImageFont.truetype(f'./data/BebasNeue-Regular.ttf', 32)
 
@@ -14,6 +15,11 @@ lbs = []
 
 with open('./data/lb2.png', 'rb') as f:
     lbs.append(f.read())
+
+mapping = None
+with open("./data/map.json", "r", encoding="utf-8") as f:
+    f.seek(0)
+    mapping = json.load(f)
 
 async def leaderboard(ctx, scores, bracket):
 
@@ -51,8 +57,12 @@ async def leaderboard(ctx, scores, bracket):
         names = []
 
         for _id in ids:
-            user = await ctx.guild.fetch_member(int(_id))
-            names.append(f'{user.display_name}')
+            if _id in mapping:
+                names.append(mapping[_id])
+
+            else:
+                user = await ctx.guild.fetch_member(int(_id))
+                names.append(f'{user.display_name}')
 
         text = " & ".join(names)
 
