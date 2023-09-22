@@ -1,4 +1,3 @@
-import discord
 from PIL.ImageFont import FreeTypeFont
 from PIL import Image, ImageFont, ImageDraw
 import io
@@ -6,9 +5,12 @@ import random
 
 FONT_REGULAR: FreeTypeFont = ImageFont.truetype(f'./data/BebasNeue-Regular.ttf', 32)
 
-data = None
+lbs = []
 with open('./data/lb.png', 'rb') as f:
-    data = f.read()
+    lbs.append(f.read())
+
+with open('./data/lb2.png', 'rb') as f:
+    lbs.append(f.read())
 
 async def leaderboard(ctx, scores):
 
@@ -27,9 +29,12 @@ async def leaderboard(ctx, scores):
         if debug:
             draw.rectangle((box_x, box_y, box_x + width, box_y + height), fill="#ff0000", width=0)
 
-        draw.text((x, y), text, font=FONT_REGULAR, fill="#000")
+        if text_width > width:
+            print('Text too big...')
 
-    image = Image.open(io.BytesIO(data))
+        draw.text((x, y), text, font=FONT_REGULAR, fill="#000")
+    
+    image = Image.open(io.BytesIO(random.choice(lbs)))
     draw = ImageDraw.Draw(image)
 
     for i, entry in enumerate(scores):
