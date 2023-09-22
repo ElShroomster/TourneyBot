@@ -2,14 +2,15 @@ import discord
 from PIL.ImageFont import FreeTypeFont
 from PIL import Image, ImageFont, ImageDraw
 import io
+import random
 
-FONT_REGULAR: FreeTypeFont = ImageFont.truetype(f'./data/BebasNeue-Regular.ttf', 37)
+FONT_REGULAR: FreeTypeFont = ImageFont.truetype(f'./data/BebasNeue-Regular.ttf', 32)
 
 data = None
 with open('./data/lb.png', 'rb') as f:
     data = f.read()
 
-def leaderboard():
+async def leaderboard(ctx, scores):
 
     def write_centered(box_x, box_y, width, height, text, debug=False):
         x1, y1, x2, y2 = draw.textbbox((0, 0), text, font=FONT_REGULAR)
@@ -28,13 +29,22 @@ def leaderboard():
 
         draw.text((x, y), text, font=FONT_REGULAR, fill="#000")
 
-
     image = Image.open(io.BytesIO(data))
     draw = ImageDraw.Draw(image)
 
-    for i in range(0, 8):
+    for i, entry in enumerate(scores):
 
-        text = "ABCD" + str(i) * (i + 1)
+        if i > 7:
+            break
+
+        ids = entry["members"]
+        names = []
+
+        for _id in ids:
+            user = await ctx.guild.fetch_member(int(_id))
+            names.append(f'{user.display_name}')
+
+        text = " & ".join(names)
 
         x = 162
         width = 385
@@ -43,24 +53,24 @@ def leaderboard():
         x += width
 
         width = 110
-        write_centered(x, 175 + i*52.25, width, 49, "123", debug=False)
+        write_centered(x, 175 + i*52.25, width, 49, str(entry["total"]), debug=False)
 
         x += width
 
-        write_centered(x, 175 + i*52.25, width, 49, "456", debug=False)
+        write_centered(x, 175 + i*52.25, width, 49, str(entry["finals"]), debug=False)
 
         x += width
 
         width = 100
-        write_centered(x, 175 + i*52.25, width, 49, "789", debug=False)
+        write_centered(x, 175 + i*52.25, width, 49, str(entry["bedBreaks"]), debug=False)
 
         x += width
 
-        write_centered(x, 175 + i*52.25, width, 49, "999", debug=False)
+        write_centered(x, 175 + i*52.25, width, 49, str(entry["survival"]), debug=False)
 
         x += width
 
-        write_centered(x, 175 + i*52.25, 118, 49, "10111", debug=False)
+        write_centered(x, 175 + i*52.25, 118, 49, str(entry["position"]), debug=False)
 
     img_data = io.BytesIO()
 
