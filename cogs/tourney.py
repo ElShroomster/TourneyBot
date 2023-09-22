@@ -1,6 +1,7 @@
 import json
 import io
 import traceback
+from typing import Optional
 
 import discord
 from discord.ext import commands
@@ -58,18 +59,33 @@ class Tourney(commands.Cog):
 
         isManager = discord.utils.get(ctx.guild.roles, id=manager_role) in ctx.author.roles
 
-        description = """**Team Commands** - Mange your team
-`-create [team name]` Create a new team. You will be the team leader.
-`-invite [player]` Invite a player to your team.
-`-accept [team name]` Accept an invite to a team.
-`-reject [team name]` Reject an invite to a team.
-`-uninvite [team name]` Sike! I don't want you on my team.
-`-leave` Leave your current team D:
-`-disband [team name]` Fed up with your team losing? Use this one!
+        description = """**Team Commands** - Manage your team
+`-invite [@user]` - Invites a player to join your team
+`-uninvite [@user]` - Cancel your invite to a player (lol)
+`-accept [team name]` - Accepts an invitation to join a team
+`-reject [team name]` - Rejects an invitation to join a team
+`-leave [team name]` - Leaves your current team
+`-kick [@user]` - Kicks a player from your team
+`-disband [team name]` - Disbands team
+`-info/-i [team/@user]` - Get info on a team/player's team
+`-lb/-standings [bracket]` - Shows a leaderboard for the current standings in a bracket
+`-team [team name]` - Variation of -i, check the info of a team
+`-thanks` - Thanks the developers & designers for their hard work ❤
 """
 
         if isManager:
             description += """\n\n**Manager Commands** - You're managing the tournament, lucky you.
+`-api` - Check if the API is online
+`-forcedisband [team name]` - Forcefully disbands & DQs a team
+`-lock? [bracket]` - Checks the lock status of the bracket
+`-lock [bracket]` - Prevents any further modification to bracket scores, allows lb to be displayed
+`-unlock [bracket]` - Allows further modification to bracket scores, prevents lb from being displayed
+`-lb/-standings [bracket] bypass` - Forcefully shows a leaderboard for the current standings in a bracket regardless of lock status
+`-score? [bracket] [team name]` - Checks the score acquired by a team in chosen bracket
+`-score [bracket] [team name] [final|bed|pos|time OR f|b|p|t] [quantity]` - Simply input the finals, beds, position or time. The value for time you provide should be in minutes.
+`-config` - Check the current config settings
+`-config players [number]` - Sets maximum amt of players per team
+`-config teams [number]` - Sets maximum amt of teams in tourney
 """
 
         embed = discord.Embed(
@@ -153,16 +169,9 @@ class Tourney(commands.Cog):
         return await self.reply_generic(ctx, f'You have successfully left `{team_name}`')
 
     @commands.command(name = 'disband', aliases = ['abandon'], usage = 'disband <team_name>')
-    async def disband(self, ctx, *args):
+    async def disband(self, ctx):
+        await ctx.send("https://www.youtube.com/watch?v=H5d42w4ZcY4", view=ConfirmDisbandView(self.bot, self.api, ctx))
 
-        team_name = " ".join(args)
-
-        if team_name == "":
-            return await self.reply_generic(ctx, f'To confirm, state the name of your team by running `{self.bot.prefix}disband <team_name>`')
-
-        await self.api.disbandTeam(team_name, ctx.author.id)
-
-        return await self.reply_generic(ctx, f'You have successfully disbanded `{team_name}`.')
 
     @commands.command(name = 'kick', aliases = ['remove'], usage = 'kick <DiscordID>')
     @commands.cooldown(rate = 3, per = 3)
@@ -179,8 +188,19 @@ class Tourney(commands.Cog):
 
         return await self.get_team_info(ctx, team)
 
+    @commands.command(name = 'teams')
+    async def team(self, ctx):
+
+        teams = await self.api.getTeams()
+        msg = ""
+
+        for i,team in enumerate(teams):
+            msg += str(i) + ": " + team["name"] + "\n"
+
+        return await self.reply_generic(ctx, msg)
+
     @commands.command(name = 'team')
-    async def team(self, ctx, *args):
+    async def teams(self, ctx, *args):
 
         team_name = " ".join(args)
 
@@ -237,14 +257,15 @@ class Tourney(commands.Cog):
         status = await self.api.getBracketStatus(bracket)
         isLocked = status["isLocked"]
 
-        ignoreLocked = ignore == "bypass"
+        isManager = discord.utils.get(ctx.guild.roles, id=manager_role) in ctx.author.roles
+        ignoreLocked = ignore == "bypass" and isManager
 
         if not isLocked and not ignoreLocked:
             return await self.reply_error(ctx, "Scoring has not yet completed for this bracket.")
 
         scores = await self.api.getBracketScores(bracket)
 
-        img = await leaderboard(ctx, scores)
+        img = await leaderboard(ctx, scores, bracket)
         image_file = discord.File(io.BytesIO(img),filename=f"lb.png")
         
         if not isLocked:
@@ -412,6 +433,13 @@ class Tourney(commands.Cog):
 
         return await self.reply_generic(ctx, "\n".join([f'**{k}**: {v}' for k,v in x.items()]))
     
+    @commands.command(name = 'thanks', aliases=["ty"])
+    async def ty(self, ctx):
+        await ctx.send("You are so welcome.", view=Credits(self.bot))
+
+    @commands.command(name = 'test')
+    async def confirm(self, ctx):
+        await ctx.send("https://www.youtube.com/watch?v=H5d42w4ZcY4", view=ConfirmDisbandView())
 
     async def announce(self, ctx, message):
         channel = discord.utils.get(ctx.guild.channels, id=announce_channel)
@@ -419,6 +447,12 @@ class Tourney(commands.Cog):
 
     async def reply_generic(self, ctx, message):
         return await ctx.message.reply(embed=self.get_embed(message), mention_author=False)
+    
+    def get_embed(self, description):
+        return discord.Embed(
+            description = description,
+            color = 0x4b61df,
+        ).set_footer(text = "BedWars Championship's Tourney")
 
     async def reply_error(self, ctx, message):
         return await ctx.message.reply(embed=discord.Embed(
@@ -426,50 +460,55 @@ class Tourney(commands.Cog):
             color = 0xff0000,
         ).set_footer(text = "BedWars Championship's Tourney"), mention_author=False)
 
-    def get_embed(self, description):
-        return discord.Embed(
-            description = description,
-            color = 0x4b61df,
-        ).set_footer(text = "BedWars Championship's Tourney")
 
-    @commands.command(name = 'help2')
-    async def help(self, ctx):
-        await ctx.send("Choose an option:", view=SelectView())
+class ConfirmDisbandView(discord.ui.View):
 
-class Select(discord.ui.Select):
-    def __init__(self):
-        options = [
-        discord.SelectOption(label="General", description="Showcases General Commands"),
-        discord.SelectOption(label="Management", description="Showcases Management's Commands.")
-    ]
-        super().__init__(placeholder="Select an option", max_values=1, min_values=1, options=options)
+    def __init__(self, bot: commands.Bot, api: API, ctx):
+        self.bot = bot
+        self.api = api
+        self.ctx = ctx
+        super().__init__(timeout=60)
 
-    async def callback(self, interaction: discord.Interaction):
+    @discord.ui.button(label="I understand that my actions have consequences.", style=discord.ButtonStyle.danger) 
+    async def button_callback(self, interaction: discord.Interaction, button):
 
-        if self.values[0] == "General":
-            embed1 = discord.Embed(
-                title = "**General**",
-                description = f"**Create ** your Team using `-create` *<TeamName>. Alias: create.*\n**Disband** your Team using `-disband` *<TeamName>. Alias: abandon.*\n\n**Invite** a Player using `-invite` *<DiscordTAG/ID>. Alias: add.*\n**Uninvite** a Player using `-uninvite` *<DiscordTAG/ID>.*\n\n**Accept** a Team Invitation using `-accept` *<TeamName>. Alias: join.*\n**Reject** a Team Invitation using `-reject` *<TeamName>.*\n**Leave** a Team using `-leave` *<TeamName>.*\n\nGet **Info** on a Player using `-info` *<DiscordTAG/ID>. Alias: i.*",
-                color = 0x4b61df
-            )
-            await interaction.response.send_message(embed=embed1, ephemeral=True)
+        if self.ctx.author.id != interaction.user.id:
+            return
+       
+        team = await self.api.getUserTeam(interaction.user.id)
 
-        if interaction.guild and any(role.id == manager_role for role in interaction.user.roles):
+        team_name = team["name"]
 
-            if self.values[0] == "Management":
-                embed2 = discord.Embed(
-                    title = "**Management**",
-                    description = "**Kick a Team** from Sign Ups using `-kickteam` *<TeamName>.*\n\nSet a **Maximum Amount of Players** per Team using `-setmaxplayers` <Number>.*\n\nSet a **Maximum Amount of Teams** using `-setmaxteams` *<Number>.*\n\n**Clear Games** using `-cleargames` *<>.*",
-                    color = 0x4b61df
-                )
-                await interaction.response.send_message(embed=embed2, ephemeral=True)
-            else:
-                await interaction.response.send_message(content="Access denied.", ephemeral=True)
+        await self.api.disbandTeam(team_name, self.ctx.author.id)
 
-class SelectView(discord.ui.View):
-    def __init__(self, *, timeout=180):
-        super().__init__(timeout=timeout)
-        self.add_item(Select())
+        await interaction.response.send_message(f'Say goodbye to team {team_name}') 
+
+        channel = discord.utils.get(self.ctx.guild.channels, id=announce_channel)
+        return await channel.send(f"Team `{team_name}` has been disbanded")
+
+
+class Credits(discord.ui.View):
+
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+        super().__init__(timeout=60)
+
+    @discord.ui.button(label="Credits", style=discord.ButtonStyle.primary, emoji='❤') 
+    async def button_callback(self, interaction: discord.Interaction, button):
+
+        user1 = await self.bot.fetch_user(722011064467849218)
+        user2 = await self.bot.fetch_user(1100176389476450374)
+
+        dm1 = await self.bot.create_dm(user1)
+        dm2 = await self.bot.create_dm(user2)
+
+        message = f'Thanks. From {interaction.user.global_name} {interaction.user.mention}'
+
+        await interaction.response.send_message("Made by moonib, ohb00 & theo <3.", ephemeral=True) 
+        await dm1.send(message)
+        await dm2.send(message)
+
+
 
 async def setup(bot):
     await bot.add_cog(Tourney(bot))

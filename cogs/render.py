@@ -5,16 +5,19 @@ import random
 
 FONT_REGULAR: FreeTypeFont = ImageFont.truetype(f'./data/BebasNeue-Regular.ttf', 32)
 
+FONT_SMALLER: FreeTypeFont = ImageFont.truetype(f'./data/BebasNeue-Regular.ttf', 28)
+
 lbs = []
-with open('./data/lb.png', 'rb') as f:
-    lbs.append(f.read())
+# Add sunset background
+#with open('./data/lb.png', 'rb') as f:
+    #lbs.append(f.read())
 
 with open('./data/lb2.png', 'rb') as f:
     lbs.append(f.read())
 
-async def leaderboard(ctx, scores):
+async def leaderboard(ctx, scores, bracket):
 
-    def write_centered(box_x, box_y, width, height, text, debug=False):
+    def write_centered(box_x, box_y, width, height, text, debug=False, font=FONT_REGULAR):
         x1, y1, x2, y2 = draw.textbbox((0, 0), text, font=FONT_REGULAR)
 
         midx = box_x + (width/2)
@@ -32,10 +35,12 @@ async def leaderboard(ctx, scores):
         if text_width > width:
             print('Text too big...')
 
-        draw.text((x, y), text, font=FONT_REGULAR, fill="#000")
+        draw.text((x, y), text, font=font, fill="#000")
     
     image = Image.open(io.BytesIO(random.choice(lbs)))
     draw = ImageDraw.Draw(image)
+
+    write_centered(110, 50, 480, 20, bracket, False)
 
     for i, entry in enumerate(scores):
 

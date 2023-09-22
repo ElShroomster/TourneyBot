@@ -1,8 +1,6 @@
 venv/
 __pycache__/
 
-data/
-
 *.key
 
 tourney.constants.json
