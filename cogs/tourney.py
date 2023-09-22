@@ -1,3 +1,4 @@
+import asyncio
 import json
 import io
 import traceback
@@ -432,9 +433,26 @@ class Tourney(commands.Cog):
     async def ty(self, ctx):
         await ctx.send("You are so welcome.", view=Credits(self.bot))
 
-    @commands.command(name = 'test')
-    async def confirm(self, ctx):
-        await ctx.send("https://www.youtube.com/watch?v=H5d42w4ZcY4", view=ConfirmDisbandView())
+    @commands.command(name = 'sync')
+    async def sync(self, ctx: commands.Context):
+
+        attach = ctx.message.attachments
+
+        if not discord.utils.get(ctx.guild.roles, id=manager_role) in ctx.author.roles:
+            return await self.reply_error(ctx, f'Permission denied.')
+
+        if len(attach) != 1:
+            return await self.reply_error(ctx, "Please attach the teams.json file to import.")
+        
+        a = attach[0]
+
+        if not a.filename.endswith(".json"):
+            return await self.reply_error(ctx, f'Must be a `.json` file.')
+        
+        data = json.loads(await a.read())
+
+        return await ctx.send("", view=ConfirmSync(ctx, self.api, data))
+
 
     async def announce(self, ctx, message):
         channel = discord.utils.get(ctx.guild.channels, id=announce_channel)
@@ -454,6 +472,37 @@ class Tourney(commands.Cog):
             description = message,
             color = 0xff0000,
         ).set_footer(text = "BedWars Championship's Tourney"), mention_author=False)
+
+class ConfirmSync(discord.ui.View):
+
+    def __init__(self, ctx: commands.Context, api: API, teams):
+        self.ctx = ctx
+        self.api = api
+        self.teams = teams
+        super().__init__(timeout=60)
+
+    @discord.ui.button(label="I confirm that I want to sync this file.", style=discord.ButtonStyle.danger) 
+    async def button_callback(self, interaction: discord.Interaction, button):
+
+        if self.ctx.author.id != interaction.user.id:
+            return
+
+        await interaction.response.send_message(f'Sync in progress...') 
+
+        size = len(self.teams)
+
+        for i, t in enumerate(self.teams):
+            await self.api.createTeam(t["name"], t["leader"])
+
+            for m in t["members"]:
+                await self.api.inviteToTeam(m, t["leader"])
+                await self.api.acceptInvite(t["name"], m)
+
+            if i % 10 == 0:
+                await self.ctx.channel.send(f'{i}/{size} ({t["name"]})')
+
+        await self.ctx.channel.send(f'Sync completed. All teams updated.')
+            
 
 
 class ConfirmDisbandView(discord.ui.View):
