@@ -499,7 +499,7 @@ class ConfirmSync(discord.ui.View):
                 await self.api.acceptInvite(t["name"], m)
 
             if i % 10 == 0:
-                await self.ctx.channel.send(f'{i}/{size} ({t["name"]})')
+                await self.ctx.channel.send(f'{i + 1}/{size} ({t["name"]})')
 
         await self.ctx.channel.send(f'Sync completed. All teams updated.')
             
