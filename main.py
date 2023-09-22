@@ -1,6 +1,7 @@
 import asyncio
 import aiohttp
 import logging
+import json
 import discord
 import discord.ext
 from discord.ext import commands
@@ -10,19 +11,25 @@ from api import API
 intents = discord.Intents.all()
 intents.presences = False
 
-prefix = "-"
 key = None
+constants = None
+
+prefix = "-"
 bot = commands.Bot(command_prefix=prefix, intents=intents)
 
-# Commands
-commands_dir = './cogs'
-commands_dir_p = "cogs"
+with open('.key', 'r') as f:
+    key = f.read()
 
-API_URL = "https://play.bryces.io"
-API_AUTH = "UG9zdGFnZTktU3lub3BzZXM5LUJyb3diZWF0NS1SZWNvaWw3"
+with open('constants.json', 'r') as f:
+    data = f.read()
+    constants = json.loads(data)
+
+API_URL = constants["API_URL"]
+API_KEY = constants["API_KEY"]
 
 async def init():
-    async with aiohttp.ClientSession(API_URL, headers={"Authorization": API_AUTH}) as session:
+
+    async with aiohttp.ClientSession(API_URL, headers={"Authorization": API_KEY}) as session:
 
         bot.api = API(session)
         bot.prefix = prefix
@@ -35,10 +42,4 @@ async def init():
             await bot.login(key)
             await bot.connect()
 
-with open('.key', 'r') as f:
-    key = f.read()
-
 asyncio.run(init())
-
-
-
