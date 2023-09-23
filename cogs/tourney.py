@@ -489,12 +489,15 @@ class ConfirmSync(discord.ui.View):
 
         await interaction.response.send_message(f'Sync in progress...') 
 
-        size = len(self.teams.values())
+        size = len(self.teams)
 
-        for i, t in enumerate(self.teams):
+        for i, t in enumerate(self.teams.values()):
             await self.api.createTeam(t["name"], str(t["leader"]))
 
             for m in t["members"]:
+                if m == t["leader"]:
+                    continue
+
                 await self.api.inviteToTeam(m, str(t["leader"]))
                 await self.api.acceptInvite(t["name"], str(m))
 
