@@ -1,5 +1,6 @@
 from PIL.ImageFont import FreeTypeFont
 from PIL import Image, ImageFont, ImageDraw
+from discord.ext import commands
 import io
 import random
 import json
@@ -21,7 +22,7 @@ with open("./data/map.json", "r", encoding="utf-8") as f:
     f.seek(0)
     mapping = json.load(f)
 
-async def leaderboard(ctx, scores, bracket):
+async def leaderboard(ctx, scores, bracket, bot: commands.Bot):
 
     def write_centered(box_x, box_y, width, height, text, debug=False, font=FONT_REGULAR):
         x1, y1, x2, y2 = draw.textbbox((0, 0), text, font=FONT_REGULAR)
@@ -61,8 +62,12 @@ async def leaderboard(ctx, scores, bracket):
                 names.append(mapping[_id])
 
             else:
-                user = await ctx.guild.fetch_member(int(_id))
-                names.append(f'{user.display_name}')
+                try:
+                    user = await ctx.guild.fetch_member(int(_id))
+                    names.append(f'{user.display_name}')
+                except:
+                    user = await bot.fetch_user(int(_id))
+                    names.append(f'{user.display_name}')
 
         text = " & ".join(names)
 

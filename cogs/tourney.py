@@ -253,7 +253,9 @@ class Tourney(commands.Cog):
         status = await self.api.getBracketStatus(bracket)
         isLocked = status["isLocked"]
 
-        isManager = discord.utils.get(ctx.guild.roles, id=manager_role) in ctx.author.roles
+        role = discord.utils.get(ctx.guild.roles, id=manager_role)
+
+        isManager = role in ctx.author.roles
         ignoreLocked = ignore == "bypass" and isManager
 
         if not isLocked and not ignoreLocked:
@@ -261,7 +263,7 @@ class Tourney(commands.Cog):
 
         scores = await self.api.getBracketScores(bracket)
 
-        img = await leaderboard(ctx, scores, bracket)
+        img = await leaderboard(ctx, scores, bracket, self.bot)
         image_file = discord.File(io.BytesIO(img),filename=f"lb.png")
         
         if not isLocked:
@@ -524,6 +526,8 @@ class ConfirmDisbandView(discord.ui.View):
        
         team = await self.api.getUserTeam(interaction.user.id)
 
+        print(team)
+
         team_name = team["name"]
 
         await self.api.disbandTeam(team_name, self.ctx.author.id)
@@ -549,7 +553,7 @@ class Credits(discord.ui.View):
         dm1 = await self.bot.create_dm(user1)
         dm2 = await self.bot.create_dm(user2)
 
-        message = f'Thanks. From {interaction.user.global_name} {interaction.user.mention}'
+        message = f'Thanks. From {interaction.user} {interaction.user.mention}'
 
         await interaction.response.send_message("Made by moonib, ohb00 & theo <3.", ephemeral=True) 
         await dm1.send(message)
