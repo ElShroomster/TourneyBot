@@ -109,7 +109,7 @@ class Tourney(commands.Cog):
         if len(team_name) > self.max_name_len:
             return await self.reply_error(ctx, 'Your team name is too long, the max length is {self.max_name_len} characters.')
 
-        await self.api.createTeam(team_name, ctx.author.id)
+        await self.api.createTeam(team_name, str(ctx.author.id))
 
         await ctx.author.add_roles(discord.utils.get(ctx.guild.roles, id = bwcs_role))
         return await self.reply_generic(ctx, f'Team `{team_name}` has been created. Use: `{self.bot.prefix}invite <user>` to invite a friend.')
@@ -118,9 +118,9 @@ class Tourney(commands.Cog):
     @commands.cooldown(rate = 3, per = 3)
     async def invite(self, ctx, player: discord.User):
 
-        team = await self.api.getUserTeam(ctx.author.id)
+        team = await self.api.getUserTeam(str(ctx.author.id))
 
-        await self.api.inviteToTeam(player.id, ctx.author.id)
+        await self.api.inviteToTeam(str(player.id), str(ctx.author.id))
 
         return await self.reply_generic(ctx, f'<@{player.id}> has been invited to `{team["name"]}`\n'f'To accept this invite, they must run `{self.bot.prefix}accept {team["name"]}`')
 
@@ -130,7 +130,7 @@ class Tourney(commands.Cog):
 
         team_name = " ".join(args)
         
-        await self.api.acceptInvite(team_name, ctx.author.id)
+        await self.api.acceptInvite(team_name, str(ctx.author.id))
         members = await self.api.getTeamMembers(team_name)
 
         print(members)
@@ -142,7 +142,7 @@ class Tourney(commands.Cog):
     @commands.command(name = 'uninvite')
     async def uninvite(self, ctx, player: discord.User):
         
-        await self.api.withdrawInvite(player.id, ctx.author.id)
+        await self.api.withdrawInvite(str(player.id), str(ctx.author.id))
 
         return await self.reply_generic(ctx, f'<@{player.id}> has been uninvited')
     
@@ -150,17 +150,17 @@ class Tourney(commands.Cog):
     async def reject(self, ctx, *args):
         team_name = " ".join(args)
 
-        await self.api.rejectInvite(team_name, ctx.author.id)
+        await self.api.rejectInvite(team_name, str(ctx.author.id))
 
         return await self.reply_generic(ctx, f'You have rejected `{team_name}`.')
 
     @commands.command(name = 'leave', usage = 'leave <team_name>')
     @commands.cooldown(rate = 3, per = 3)
     async def leave(self, ctx):
-        team = await self.api.getUserTeam(ctx.author.id)
+        team = await self.api.getUserTeam(str(ctx.author.id))
         team_name = team["name"]
 
-        await self.api.leaveTeam(team_name, ctx.author.id)
+        await self.api.leaveTeam(team_name, str(ctx.author.id))
 
         return await self.reply_generic(ctx, f'You have successfully left `{team_name}`')
 
@@ -173,14 +173,14 @@ class Tourney(commands.Cog):
     @commands.cooldown(rate = 3, per = 3)
     async def kick(self, ctx, player: discord.User):
 
-        await self.api.kickMember(player.id, ctx.author.id)
+        await self.api.kickMember(str(player.id), str(ctx.author.id))
 
         return await self.reply_generic(ctx, f'<@{player.id}> has been kicked.')
 
     @commands.command(name = 'info', aliases = ['i'])
     async def info(self, ctx, player: discord.User):
 
-        team = await self.api.getUserTeam(player.id)
+        team = await self.api.getUserTeam(str(player.id))
 
         return await self.get_team_info(ctx, team)
 
@@ -324,7 +324,7 @@ class Tourney(commands.Cog):
         if team_name == "":
             return await self.reply_error(f'Please enter the team name: `{self.bot.prefix}forcedisband <team_name>`')
 
-        await self.api.forceDisband(team_name, ctx.author.id)
+        await self.api.forceDisband(team_name, str(ctx.author.id))
 
         await self.announce(ctx, f"`{team_name}` has been removed from the tourney by <@{ctx.author.id}>")
 
@@ -524,13 +524,11 @@ class ConfirmDisbandView(discord.ui.View):
         if self.ctx.author.id != interaction.user.id:
             return
        
-        team = await self.api.getUserTeam(interaction.user.id)
-
-        print(team)
+        team = await self.api.getUserTeam(str(interaction.user.id))
 
         team_name = team["name"]
 
-        await self.api.disbandTeam(team_name, self.ctx.author.id)
+        await self.api.disbandTeam(team_name, str(self.ctx.author.id))
 
         await interaction.response.send_message(f'Say goodbye to team {team_name}') 
 
