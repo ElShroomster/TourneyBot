@@ -14,7 +14,7 @@ lbs = []
 #with open('./data/lb.png', 'rb') as f:
     #lbs.append(f.read())
 
-with open('./data/lb2.png', 'rb') as f:
+with open('./data/lb.png', 'rb') as f:
     lbs.append(f.read())
 
 mapping = None
