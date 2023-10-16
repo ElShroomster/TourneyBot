@@ -193,6 +193,8 @@ class Tourney(commands.Cog):
         for i,team in enumerate(teams):
             msg += str(i) + ": " + team["name"] + "\n"
 
+        print(teams)
+
         return await self.reply_generic(ctx, msg)
 
     @commands.command(name = 'team')
